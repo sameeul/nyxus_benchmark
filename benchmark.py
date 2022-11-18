@@ -3,7 +3,6 @@ import glob
 import re
 import shutil
 import subprocess
-from unittest import result
 
 class Benchmark:
     def __init__(self,  image_int_dir, 
@@ -101,16 +100,3 @@ class Benchmark:
             base_file_name = os.path.basename(full_file_name)
             roi_count, roi_size = re.findall("=(\d+)", base_file_name)
             self._image_collection[(int(roi_count), int(roi_size))] = base_file_name
-
-
-
-if __name__ == '__main__':
-    print("hello")
-    benchmark = Benchmark("/home/samee/Downloads/synthetic1_nrois=10,50/int",
-                            "/home/samee/Downloads/synthetic1_nrois=10,50/seg",
-                            "/home/samee/axle/dev/nyxus_paper/nyxus/data", 
-                            "/home/samee/axle/dev/nyxus_paper/nyxus/build_man/nyxus",
-                            False)
-    benchmark.collect_image_pairs()
-    benchmark.get_benchmark_data(10,500)
-    benchmark.get_benchmark_data(10,10)
