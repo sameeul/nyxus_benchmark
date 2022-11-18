@@ -7,7 +7,5 @@ if __name__ == '__main__':
                             "/home/samee/axle/dev/nyxus_paper/nyxus/build_man/nyxus",
                             False)
 
-    # benchmark.get_benchmark_data(10,500)
-    # benchmark.get_benchmark_data(10,10)
-    # benchmark.merge_results()
+
     benchmark.run_benchmark_suit()

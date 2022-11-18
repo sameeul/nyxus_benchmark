@@ -19,19 +19,6 @@ class Benchmark:
         self._image_collection = {}
         self._processed_images = []
         self.collect_image_pairs()
-        try:
-            os.mkdir(f"{self._work_dir}/int")
-        except FileExistsError :
-            pass
-        try:
-            os.mkdir(f"{self._work_dir}/seg")
-        except FileExistsError :
-            pass
-
-        try:
-            os.mkdir(f"{self._work_dir}/out")
-        except FileExistsError :
-            pass
 
         try:
             os.mkdir(f"{self._work_dir}/results")
@@ -104,24 +91,26 @@ class Benchmark:
                         "--verbosity=3"
                         ])
 
-    def merge_results(self):
+    def merge_benchmark_suit_results(self):
         input_csv_list = glob.glob(self._work_dir+"/results/*.csv")
-        first_csv = True
-        current_date_time = datetime.datetime.now()
         timestamp = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
         out_file_name = f"{self._work_dir}/merged_result_{timestamp}.csv"
-        with open(out_file_name, "w") as ofp:
+        self.merge_csv_files(input_csv_list, out_file_name)
+        
+
+    def merge_csv_files(self, input_csv_list, output_csv_name):
+        with open(output_csv_name, "w") as ofp:
             first_csv = True
             for in_file_name in input_csv_list:
                 with open(in_file_name, 'r') as ifp:
-                    is_header = True
+                    header_line = True
                     lines = ifp.readlines()
                     for line in lines:
-                        if is_header and not first_csv:
-                            continue
+                        if header_line and not first_csv:
+                            pass
                         else:
                             ofp.write(line)
-                        is_header = False
+                        header_line = False
                 first_csv = False
 
 
@@ -147,4 +136,4 @@ class Benchmark:
     def run_benchmark_suit(self):
         for roi_param in self._image_collection:
             self.get_benchmark_data(roi_param[0], roi_param[1])
-        self.merge_results()
+        self.merge_benchmark_suit_results()
