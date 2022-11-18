@@ -1,3 +1,4 @@
+import datetime
 import os
 import glob
 import re
@@ -40,6 +41,19 @@ class Benchmark:
 
     def copy_files_to_workdir(self, base_file_name):
         try:
+            os.mkdir(f"{self._work_dir}/int")
+        except FileExistsError :
+            pass
+        try:
+            os.mkdir(f"{self._work_dir}/seg")
+        except FileExistsError :
+            pass
+
+        try:
+            os.mkdir(f"{self._work_dir}/out")
+        except FileExistsError :
+            pass
+        try:
             shutil.copyfile(f"{self._image_int_dir}/{base_file_name}", f"{self._work_dir}/int/{base_file_name}")
         except:
             pass
@@ -49,10 +63,12 @@ class Benchmark:
             pass
 
     def copy_results_from_workdir(self, base_file_name):
-        abs_result_file_name = f"{self._work_dir}/out/{base_file_name}_nyxustiming.csv"
+        base_file_name_wo_ext, tmp = os.path.splitext(base_file_name)
+        abs_result_file_name = f"{self._work_dir}/out/{base_file_name_wo_ext}_nyxustiming.csv"
+        print(abs_result_file_name)
         if(os.path.exists(abs_result_file_name)):
             try:
-                dest_file_name = f"{self._work_dir}/results/{base_file_name}_nyxustiming.csv"
+                dest_file_name = f"{self._work_dir}/results/{base_file_name_wo_ext}_nyxustiming.csv"
                 shutil.copyfile(abs_result_file_name, dest_file_name)
                 self._processed_images.append(base_file_name)
             except:
@@ -62,14 +78,22 @@ class Benchmark:
         pass
 
     def cleanup_workdir(self, base_file_name):
-        pass
+        try:
+            shutil.rmtree(f"{self._work_dir}/int")
+        except:
+            pass
+        try:
+            shutil.rmtree(f"{self._work_dir}/seg")
+        except:
+            pass
+
+        try:
+            shutil.rmtree(f"{self._work_dir}/out")
+        except:
+            pass
 
     def run_nyxus(self, base_file_name):
-       
-        cmd_args = f"--features=*ALL* --segDir={self._work_dir}/seg --intDir={self._work_dir}/int" + \
-                f" --outDir={self._work_dir}/out  --csvFile=singlecsv --verbosity=3"
-        print(self._nyxus_executable)
-        print(cmd_args)
+        print(f"Running nyxus for {base_file_name}")
         subprocess.run([
                         self._nyxus_executable, 
                         "--features=*ALL*",
@@ -81,13 +105,31 @@ class Benchmark:
                         ])
 
     def merge_results(self):
-        pass
+        input_csv_list = glob.glob(self._work_dir+"/results/*.csv")
+        first_csv = True
+        current_date_time = datetime.datetime.now()
+        timestamp = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+        out_file_name = f"{self._work_dir}/merged_result_{timestamp}.csv"
+        with open(out_file_name, "w") as ofp:
+            first_csv = True
+            for in_file_name in input_csv_list:
+                with open(in_file_name, 'r') as ifp:
+                    is_header = True
+                    lines = ifp.readlines()
+                    for line in lines:
+                        if is_header and not first_csv:
+                            continue
+                        else:
+                            ofp.write(line)
+                        is_header = False
+                first_csv = False
+
+
 
     def get_benchmark_data(self, roi_count, roi_area):
         base_file_name = f"synthetic_nrois={roi_count}_roiarea={roi_area}.tif"
         if (roi_count, roi_area) in self._image_collection and \
             self._image_collection[(roi_count, roi_area)] == base_file_name :
-                print(base_file_name)
                 self.copy_files_to_workdir(base_file_name)
                 self.run_nyxus(base_file_name)
                 self.copy_results_from_workdir(base_file_name)
@@ -100,3 +142,9 @@ class Benchmark:
             base_file_name = os.path.basename(full_file_name)
             roi_count, roi_size = re.findall("=(\d+)", base_file_name)
             self._image_collection[(int(roi_count), int(roi_size))] = base_file_name
+
+
+    def run_benchmark_suit(self):
+        for roi_param in self._image_collection:
+            self.get_benchmark_data(roi_param[0], roi_param[1])
+        self.merge_results()
