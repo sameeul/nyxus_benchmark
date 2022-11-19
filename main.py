@@ -8,12 +8,16 @@ feature_list = "*ALL*"
 generate_missing_image = False
 
 if __name__ == '__main__':
-    benchmark = Benchmark(int_image_dir,
+    benchmark = Benchmark(  int_image_dir,
                             seg_image_dir,
                             work_dir, 
                             nyxus_executable, 
                             feature_list, 
-                            generate_missing_image)
+                            generate_missing_image
+                        )
 
 
     benchmark.run_benchmark_suit()
+    benchmark.create_benchmark_plot("Total", "All", "All")
+
+    #benchmark.get_benchmark_data(50, 100, "*ALL*")

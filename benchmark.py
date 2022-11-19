@@ -4,6 +4,8 @@ import glob
 import re
 import shutil
 import subprocess
+import pandas as pd
+import matplotlib.pyplot as plt
 
 class Benchmark:
     def __init__(self,  image_int_dir, 
@@ -22,6 +24,7 @@ class Benchmark:
         self._image_collection = {}
         self._processed_images = []
         self._result_dir = None
+        self._merged_result_file = None
         self.collect_image_pairs()
 
         try:
@@ -82,10 +85,10 @@ class Benchmark:
         except:
             pass
 
-        try:
-            shutil.rmtree(f"{work_dir}/out")
-        except:
-            pass
+        # try:
+        #     shutil.rmtree(f"{work_dir}/out")
+        # except:
+        #     pass
 
     def run_nyxus(self, base_file_name, seg_dir, int_dir, out_dir, feature_list):
         print(f"Running nyxus for {base_file_name}")
@@ -104,6 +107,7 @@ class Benchmark:
         timestamp = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
         out_file_name = f"{self._work_dir}/merged_result_{timestamp}.csv"
         self.merge_csv_files(input_csv_list, out_file_name)
+        self._merged_result_file = out_file_name
         
 
     def merge_csv_files(self, input_csv_list, output_csv_name):
@@ -136,6 +140,8 @@ class Benchmark:
                 self.run_nyxus(base_file_name, seg_dir, int_dir, out_dir, feature_list)
                 self.collect_result(base_file_name, out_dir, result_dir)
                 self.cleanup_workdir(self._work_dir)
+        else:
+            print("weird stuff")
 
 
     def collect_image_pairs(self):
@@ -150,3 +156,23 @@ class Benchmark:
         for roi_param in self._image_collection:
             self.get_benchmark_data(roi_param[0], roi_param[1], self._feature_list)
         self.merge_benchmark_suit_results()
+
+    def create_benchmark_plot(self, feature_l1, feature_l2, feature_l3, rerun_merge=False):
+        if self._merged_result_file == None or rerun_merge:
+            self.merge_benchmark_suit_results()
+
+        df = pd.read_csv(self._merged_result_file)
+        filtered_view = df[(df["h1"]==feature_l1) & (df["h2"]==feature_l2) & (df["h3"]==feature_l3)]
+        roi_area_list = filtered_view["roiarea"].unique()
+
+        for value in roi_area_list:
+            tmp_df = filtered_view[filtered_view["roiarea"] == value]
+            plt.plot(tmp_df.nrois, tmp_df.rawtime, label=str(value), marker='o')
+
+        plt.title(f"Timing Data for {feature_l1}, {feature_l2}, {feature_l3}")
+        plt.xlabel("Number of ROIs")
+        plt.ylabel("Time (s)")
+        plt.legend()
+        merged_result_file_wo_ext, dummy = os.path.splitext(self._merged_result_file)
+        plot_file_name = f"{merged_result_file_wo_ext}_{feature_l1}_{feature_l2}_{feature_l3}.jpg"
+        plt.savefig(plot_file_name)
