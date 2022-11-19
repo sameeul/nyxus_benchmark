@@ -1,11 +1,19 @@
 from benchmark import Benchmark
 
+int_image_dir = "/home/samee/Downloads/synthetic1_nrois=10,50/int"
+seg_image_dir = "/home/samee/Downloads/synthetic1_nrois=10,50/seg"
+work_dir = "/home/samee/axle/dev/nyxus_paper/nyxus_work_dir"
+nyxus_executable = "/home/samee/axle/dev/nyxus_paper/nyxus/build_man/nyxus"
+feature_list = "*ALL*"
+generate_missing_image = False
+
 if __name__ == '__main__':
-    benchmark = Benchmark("/home/samee/Downloads/synthetic1_nrois=10,50/int",
-                            "/home/samee/Downloads/synthetic1_nrois=10,50/seg",
-                            "/home/samee/axle/dev/nyxus_paper/nyxus/data", 
-                            "/home/samee/axle/dev/nyxus_paper/nyxus/build_man/nyxus",
-                            False)
+    benchmark = Benchmark(int_image_dir,
+                            seg_image_dir,
+                            work_dir, 
+                            nyxus_executable, 
+                            feature_list, 
+                            generate_missing_image)
 
 
     benchmark.run_benchmark_suit()

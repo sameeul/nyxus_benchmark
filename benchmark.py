@@ -10,83 +10,91 @@ class Benchmark:
                         image_seg_dir, 
                         work_dir,
                         nyxus_executable, 
+                        feature_list = "*ALL*",
                         generate_missing_image=False) -> None:
+
         self._image_int_dir = image_int_dir
         self._image_seg_dir = image_seg_dir
         self._work_dir = work_dir
         self._nyxus_executable = nyxus_executable
+        self._feature_list = feature_list
         self._generate_mising_image = generate_missing_image
         self._image_collection = {}
         self._processed_images = []
+        self._result_dir = None
         self.collect_image_pairs()
 
         try:
             os.mkdir(f"{self._work_dir}/results")
+            self._result_dir = f"{self._work_dir}/results"
+        except FileExistsError :
+            pass
+
+    def create_nyxus_dirs(self, work_dir):
+        try:
+            os.mkdir(f"{work_dir}/int")
+        except FileExistsError :
+            pass
+        try:
+            os.mkdir(f"{work_dir}/seg")
+        except FileExistsError :
+            pass
+
+        try:
+            os.mkdir(f"{work_dir}/out")
         except FileExistsError :
             pass
 
 
-    def copy_files_to_workdir(self, base_file_name):
+    def prepare_workdir(self, work_dir, seg_dir, int_dir, base_file_name):
+        self.cleanup_workdir(work_dir)
+        self.create_nyxus_dirs(work_dir)
         try:
-            os.mkdir(f"{self._work_dir}/int")
-        except FileExistsError :
-            pass
-        try:
-            os.mkdir(f"{self._work_dir}/seg")
-        except FileExistsError :
-            pass
-
-        try:
-            os.mkdir(f"{self._work_dir}/out")
-        except FileExistsError :
-            pass
-        try:
-            shutil.copyfile(f"{self._image_int_dir}/{base_file_name}", f"{self._work_dir}/int/{base_file_name}")
+            shutil.copyfile(f"{int_dir}/{base_file_name}", f"{work_dir}/int/{base_file_name}")
         except:
             pass
         try:
-            shutil.copyfile(f"{self._image_seg_dir}/{base_file_name}", f"{self._work_dir}/seg/{base_file_name}")
+            shutil.copyfile(f"{seg_dir}/{base_file_name}", f"{work_dir}/seg/{base_file_name}")
         except:
             pass
 
-    def copy_results_from_workdir(self, base_file_name):
+    def collect_result(self, base_file_name, out_dir, result_dir):
+
+        if result_dir == None:
+            pass
         base_file_name_wo_ext, tmp = os.path.splitext(base_file_name)
-        abs_result_file_name = f"{self._work_dir}/out/{base_file_name_wo_ext}_nyxustiming.csv"
-        print(abs_result_file_name)
+        abs_result_file_name = f"{out_dir}/{base_file_name_wo_ext}_nyxustiming.csv"
         if(os.path.exists(abs_result_file_name)):
             try:
-                dest_file_name = f"{self._work_dir}/results/{base_file_name_wo_ext}_nyxustiming.csv"
+                dest_file_name = f"{result_dir}/{base_file_name_wo_ext}_nyxustiming.csv"
                 shutil.copyfile(abs_result_file_name, dest_file_name)
                 self._processed_images.append(base_file_name)
             except:
                 print(f"Result not generated for {base_file_name}")
         
-
-        pass
-
-    def cleanup_workdir(self, base_file_name):
+    def cleanup_workdir(self, work_dir):
         try:
-            shutil.rmtree(f"{self._work_dir}/int")
+            shutil.rmtree(f"{work_dir}/int")
         except:
             pass
         try:
-            shutil.rmtree(f"{self._work_dir}/seg")
+            shutil.rmtree(f"{work_dir}/seg")
         except:
             pass
 
         try:
-            shutil.rmtree(f"{self._work_dir}/out")
+            shutil.rmtree(f"{work_dir}/out")
         except:
             pass
 
-    def run_nyxus(self, base_file_name):
+    def run_nyxus(self, base_file_name, seg_dir, int_dir, out_dir, feature_list):
         print(f"Running nyxus for {base_file_name}")
         subprocess.run([
                         self._nyxus_executable, 
-                        "--features=*ALL*",
-                        f"--segDir={self._work_dir}/seg",
-                        f"--intDir={self._work_dir}/int",
-                        f"--outDir={self._work_dir}/out",
+                        f"--features={feature_list}",
+                        f"--segDir={seg_dir}",
+                        f"--intDir={int_dir}",
+                        f"--outDir={out_dir}",
                         "--csvFile=singlecsv",
                         "--verbosity=3"
                         ])
@@ -115,14 +123,19 @@ class Benchmark:
 
 
 
-    def get_benchmark_data(self, roi_count, roi_area):
+    def get_benchmark_data(self, roi_count, roi_area, feature_list):
         base_file_name = f"synthetic_nrois={roi_count}_roiarea={roi_area}.tif"
+        seg_dir = self._work_dir+"/seg"
+        int_dir = self._work_dir+"/int"
+        out_dir = self._work_dir+"/out"
+        result_dir = self._result_dir
+
         if (roi_count, roi_area) in self._image_collection and \
             self._image_collection[(roi_count, roi_area)] == base_file_name :
-                self.copy_files_to_workdir(base_file_name)
-                self.run_nyxus(base_file_name)
-                self.copy_results_from_workdir(base_file_name)
-                self.cleanup_workdir(base_file_name)
+                self.prepare_workdir(self._work_dir, self._image_seg_dir, self._image_int_dir, base_file_name)
+                self.run_nyxus(base_file_name, seg_dir, int_dir, out_dir, feature_list)
+                self.collect_result(base_file_name, out_dir, result_dir)
+                self.cleanup_workdir(self._work_dir)
 
 
     def collect_image_pairs(self):
@@ -135,5 +148,5 @@ class Benchmark:
 
     def run_benchmark_suit(self):
         for roi_param in self._image_collection:
-            self.get_benchmark_data(roi_param[0], roi_param[1])
+            self.get_benchmark_data(roi_param[0], roi_param[1], self._feature_list)
         self.merge_benchmark_suit_results()
