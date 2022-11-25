@@ -18,8 +18,14 @@ if __name__ == '__main__':
                                             base_mask_image_path,
                                             base_intensity_image_path)
 
-    dataset_generator.generate_image_pair(100,1000,5)
-    dataset_generator.generate_image_pair(1000,1000,5)
+    n_rois = [10, 50, 100]
+    roi_areas = [100, 500, 1000]
+    padding = 5
+
+    for n_roi in n_rois:
+        for roi_size in roi_areas:
+            dataset_generator.generate_image_pair(n_roi ,roi_size, padding)
+
 
     benchmark = Benchmark(  int_image_dir,
                             seg_image_dir,
