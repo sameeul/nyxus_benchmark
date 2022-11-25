@@ -25,13 +25,18 @@ class Benchmark:
         self._processed_images = []
         self._result_dir = None
         self._merged_result_file = None
+        self._num_sample = 3
         self.collect_image_pairs()
 
-        try:
-            os.mkdir(f"{self._work_dir}/results")
+        if os.path.exists( f"{self._work_dir}/results"):
             self._result_dir = f"{self._work_dir}/results"
-        except FileExistsError :
-            pass
+        else:
+            try:
+                os.mkdir(f"{self._work_dir}/results")
+                self._result_dir = f"{self._work_dir}/results"
+            except:
+                print(f"Unable to create {self._work_dir}/results directory")
+                exit()
 
     def create_nyxus_dirs(self, work_dir):
         try:
@@ -61,19 +66,20 @@ class Benchmark:
         except:
             pass
 
-    def collect_result(self, base_file_name, out_dir, result_dir):
-
+    def collect_result(self, base_file_name, out_dir, result_dir, tag):
+    
+        dest_file_name = None
         if result_dir == None:
             pass
         base_file_name_wo_ext, tmp = os.path.splitext(base_file_name)
         abs_result_file_name = f"{out_dir}/{base_file_name_wo_ext}_nyxustiming.csv"
         if(os.path.exists(abs_result_file_name)):
             try:
-                dest_file_name = f"{result_dir}/{base_file_name_wo_ext}_nyxustiming.csv"
+                dest_file_name = f"{result_dir}/{base_file_name_wo_ext}_nyxustiming.csv._{tag}"
                 shutil.copyfile(abs_result_file_name, dest_file_name)
-                self._processed_images.append(base_file_name)
             except:
                 print(f"Result not generated for {base_file_name}")
+        return dest_file_name
         
     def cleanup_workdir(self, work_dir):
         try:
@@ -136,13 +142,36 @@ class Benchmark:
 
         if (roi_count, roi_area) in self._image_collection and \
             self._image_collection[(roi_count, roi_area)] == base_file_name :
-                self.prepare_workdir(self._work_dir, self._image_seg_dir, self._image_int_dir, base_file_name)
-                self.run_nyxus(base_file_name, seg_dir, int_dir, out_dir, feature_list)
-                self.collect_result(base_file_name, out_dir, result_dir)
-                self.cleanup_workdir(self._work_dir)
+                result_file_list = []
+                for i in range(self._num_sample):
+                    self.prepare_workdir(self._work_dir, self._image_seg_dir, self._image_int_dir, base_file_name)
+                    self.run_nyxus(base_file_name, seg_dir, int_dir, out_dir, feature_list)
+                    result_file = self.collect_result(base_file_name, out_dir, result_dir, "run_"+str(i))
+                    if result_file != None:
+                        result_file_list.append(result_file)
+                    self.cleanup_workdir(self._work_dir)
+                self.calculate_average(base_file_name, result_file_list, result_dir)
         else:
             print("weird stuff")
 
+    def calculate_average(self, base_file_name, result_file_list, result_dir):
+        dest_file_name = None
+        if result_dir == None:
+            pass
+        base_file_name_wo_ext, tmp = os.path.splitext(base_file_name)
+        primary_result_df = pd.read_csv(result_file_list[0])
+        data_column_list = ["rawtime"]
+        for count, result_file in enumerate(result_file_list[1:]):
+            result_data = pd.read_csv(result_file)
+            rawtime_col = result_data["rawtime"]
+            col_title = "rawtime" + str(count)
+            primary_result_df.insert(len(primary_result_df.columns), col_title, rawtime_col)
+            data_column_list.append(col_title)
+        primary_result_df["rawtime_avg"] = primary_result_df[data_column_list].mean(axis=1)
+        
+        dest_file_name = f"{result_dir}/{base_file_name_wo_ext}_nyxustiming.csv"
+        primary_result_df.to_csv(dest_file_name)
+        self._processed_images.append(base_file_name)
 
     def collect_image_pairs(self):
         file_list = glob.glob(self._image_int_dir+"/*.tif")
@@ -167,7 +196,7 @@ class Benchmark:
 
         for value in roi_area_list:
             tmp_df = filtered_view[filtered_view["roiarea"] == value]
-            plt.plot(tmp_df.nrois, tmp_df.rawtime, label=str(value), marker='o')
+            plt.loglog(tmp_df.nrois, tmp_df.rawtime_avg, label=str(value), marker='o')
 
         plt.title(f"Timing Data for {feature_l1}, {feature_l2}, {feature_l3}")
         plt.xlabel("Number of ROIs")
