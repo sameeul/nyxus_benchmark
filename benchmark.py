@@ -1,6 +1,5 @@
 import datetime
 import os
-import glob
 import re
 import shutil
 import subprocess
@@ -198,7 +197,7 @@ class Benchmark:
         roi_area_list = filtered_view["roiarea"].unique()
 
         for value in roi_area_list:
-            tmp_df = filtered_view[filtered_view["roiarea"] == value]
+            tmp_df = filtered_view[filtered_view["roiarea"] == value].sort_values("nrois")
             plt.loglog(tmp_df.nrois, tmp_df.rawtime_avg, label=str(value), marker='o')
 
         plt.title(f"Timing Data for {feature_l1}, {feature_l2}, {feature_l3}")
