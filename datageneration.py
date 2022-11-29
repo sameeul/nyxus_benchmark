@@ -39,7 +39,7 @@ class DatasetGenerator:
         seg_id = num_roi_tiles_along_image_width*(tile_y_index)+tile_x_index+1
         return seg_id
 
-    def fill_tile(self, tile_y_index, tile_x_index, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, roi_base_data):
+    def fill_tile(self, tile_y_index, tile_x_index, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, roi_base_data, padding, image_type):
         tile_data = np.zeros((tile_y_size, tile_x_size), dtype=np.uint32)
         #top left point
         (g_x, g_y) = self.local_to_global_coord(tile_x_index, tile_y_index, 0, 0, tile_x_size, tile_y_size)
@@ -50,6 +50,9 @@ class DatasetGenerator:
         left_edge_roi_local_x_coord = r_x_l
         top_edge_roi_local_y_coord = r_y_l
         
+
+        ih = min([image_height, tile_y_size-1])
+        iw = min([image_width, tile_x_size-1])
         #bottom right point
         (g_x, g_y) = self.local_to_global_coord(tile_x_index, tile_y_index, tile_x_size-1, tile_y_size-1, tile_x_size, tile_y_size)
         ((r_x_ind, r_y_ind), (r_x_l, r_y_l)) =  self.global_to_local_coord(g_x, g_y, roi_width, roi_height)
@@ -90,7 +93,19 @@ class DatasetGenerator:
                 ((tmp_1, tmp_2), (t_x_l_1, t_y_l_1)) = self.global_to_local_coord(i_x_1, i_y_1, tile_x_size, tile_y_size)
                 ((tmp_1, tmp_2), (t_x_l_2, t_y_l_2)) = self.global_to_local_coord(i_x_2, i_y_2, tile_x_size, tile_y_size)
                 
-                tile_data[t_x_l_1:t_x_l_2+1, t_y_l_1:t_y_l_2+1] = seg_id*roi_base_data[roi_left_x:roi_right_x+1,roi_top_y:roi_bottom_y+1]
+
+                if roi_tile_x == 1 and roi_tile_y == 1 and image_type == "seg":
+                    shift = padding
+                    roi_base_data_new = roi_base_data.copy()
+                    mid_x = int((roi_left_x+roi_right_x)/2)
+                    mid_y = int((roi_top_y+roi_bottom_y)/2)
+                    roi_base_data_new[roi_left_x:mid_x+1-shift,:] = roi_base_data_new[roi_left_x+shift:mid_x+1,:] 
+                    roi_base_data_new[mid_x+shift:roi_right_x+1,:] = roi_base_data_new[mid_x:roi_right_x-shift+1,:] 
+                    roi_base_data_new[:,roi_top_y:mid_y+1-shift] = roi_base_data_new[:,roi_top_y+shift:mid_y+1] 
+                    roi_base_data_new[:,mid_y+shift:roi_bottom_y+1] = roi_base_data_new[:,mid_y:roi_bottom_y-shift+1] 
+                    tile_data[t_x_l_1:t_x_l_2+1, t_y_l_1:t_y_l_2+1] = seg_id*roi_base_data_new[roi_left_x:roi_right_x+1,roi_top_y:roi_bottom_y+1]
+                else:
+                    tile_data[t_x_l_1:t_x_l_2+1, t_y_l_1:t_y_l_2+1] = seg_id*roi_base_data[roi_left_x:roi_right_x+1,roi_top_y:roi_bottom_y+1]
 
         return tile_data
 
@@ -126,11 +141,11 @@ class DatasetGenerator:
         self.read_mask_image(roi_size, padding)
         # find roi tile count
         n_rois_x = ceil(sqrt(n_rois))
-        n_rois_y = n_rois_x
+        n_rois_y = floor(sqrt(n_rois))
 
         # full image dims
-        image_width = n_rois_x*self._roi_base_data.shape[0]
-        image_height = n_rois_y*self._roi_base_data.shape[1]
+        image_width = n_rois_x*self._roi_base_data.shape[1]
+        image_height = n_rois_y*self._roi_base_data.shape[0]
         # roi dims
         roi_width = self._roi_base_data.shape[0]
         roi_height = self._roi_base_data.shape[1]
@@ -145,7 +160,7 @@ class DatasetGenerator:
                 y_max = min([image_height,y+tile_y_size])
                 for x in range(0, image_width, tile_x_size):
                     x_max = min([image_width,x+tile_x_size])
-                    tmp = self.fill_tile(tile_x_ind, tile_y_ind, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, self._roi_base_data)
+                    tmp = self.fill_tile(tile_x_ind, tile_y_ind, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, self._roi_base_data, padding, "seg")
                     bw[y:y_max, x:x_max,0,0,0] = tmp[:y_max-y, :x_max-x]
                     tile_x_ind = tile_x_ind+1
                 tile_y_ind = tile_y_ind+1
@@ -172,7 +187,7 @@ class DatasetGenerator:
                 y_max = min([image_height,y+tile_y_size])
                 for x in range(0, image_width, tile_x_size):
                     x_max = min([image_width,x+tile_x_size])
-                    tmp = self.fill_tile(tile_x_ind, tile_y_ind, tile_x_size, tile_y_size, image_height, image_width, sq_side, sq_side, cropped_image)
+                    tmp = self.fill_tile(tile_x_ind, tile_y_ind, tile_x_size, tile_y_size, image_height, image_width, sq_side, sq_side, cropped_image, padding, "int")
                     bw[y:y_max, x:x_max,0,0,0] = tmp[:y_max-y, :x_max-x]
                     tile_x_ind = tile_x_ind+1
                 tile_y_ind = tile_y_ind+1
