@@ -14,7 +14,7 @@ dataset_generator = DatasetGenerator(   int_image_dir,
 
 Once initialized, an image pair can be created like the following:
 ```
-dataset_generator.generate_image_pair(n_roi ,roi_size, padding)
+dataset_generator.generate_image_pair(n_roi ,roi_size, padding, percent_oversized_roi)
 ```
 
 Once image pairs are generated, the benchmark data can be gathered using the `Benchmark` class.

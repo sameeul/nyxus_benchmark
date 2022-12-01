@@ -21,10 +21,11 @@ if __name__ == '__main__':
     n_rois = [10, 50, 100]
     roi_areas = [100, 500, 1000]
     padding = 5
+    percent_oversized_roi = 30
 
     for n_roi in n_rois:
         for roi_size in roi_areas:
-            dataset_generator.generate_image_pair(n_roi ,roi_size, padding)
+            dataset_generator.generate_image_pair(n_roi ,roi_size, padding, percent_oversized_roi)
 
 
     benchmark = Benchmark(  int_image_dir,
