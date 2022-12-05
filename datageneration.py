@@ -39,7 +39,7 @@ class DatasetGenerator:
         seg_id = num_roi_tiles_along_image_width*(tile_y_index)+tile_x_index+1
         return seg_id
 
-    def fill_tile(self, tile_y_index, tile_x_index, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, roi_base_data, padding, oversized_rois, num_oversized_diag_rois):
+    def fill_tile(self, tile_x_index, tile_y_index, tile_x_size, tile_y_size, image_height, image_width, roi_height, roi_width, roi_base_data, padding, oversized_rois, num_oversized_diag_rois):
         tile_data = np.zeros((tile_y_size, tile_x_size), dtype=np.uint32)
         #top left point
         (g_x, g_y) = self.local_to_global_coord(tile_x_index, tile_y_index, 0, 0, tile_x_size, tile_y_size)
@@ -94,15 +94,15 @@ class DatasetGenerator:
                 if roi_tile_x == roi_tile_y and oversized_rois and roi_tile_x < num_oversized_diag_rois:
                     shift = padding
                     roi_base_data_new = roi_base_data.copy()
-                    mid_x = int((roi_left_x+roi_right_x)/2)
-                    mid_y = int((roi_top_y+roi_bottom_y)/2)
-                    roi_base_data_new[roi_left_x:mid_x+1-shift,:] = roi_base_data_new[roi_left_x+shift:mid_x+1,:] 
-                    roi_base_data_new[mid_x+shift:roi_right_x+1,:] = roi_base_data_new[mid_x:roi_right_x-shift+1,:] 
-                    roi_base_data_new[:,roi_top_y:mid_y+1-shift] = roi_base_data_new[:,roi_top_y+shift:mid_y+1] 
-                    roi_base_data_new[:,mid_y+shift:roi_bottom_y+1] = roi_base_data_new[:,mid_y:roi_bottom_y-shift+1] 
-                    tile_data[t_x_l_1:t_x_l_2+1, t_y_l_1:t_y_l_2+1] = seg_id*roi_base_data_new[roi_left_x:roi_right_x+1,roi_top_y:roi_bottom_y+1]
+                    mid_x = int((roi_width)/2)
+                    mid_y = int((roi_height)/2)
+                    roi_base_data_new[:, 0:mid_x+1-shift] = roi_base_data_new[:, shift:mid_x+1] 
+                    roi_base_data_new[:, mid_x+shift:roi_width] = roi_base_data_new[:, mid_x:roi_width-shift] 
+                    roi_base_data_new[0:mid_y+1-shift, :] = roi_base_data_new[shift:mid_y+1, :] 
+                    roi_base_data_new[mid_y+shift:roi_height, :] = roi_base_data_new[mid_y:roi_height-shift, :] 
+                    tile_data[t_y_l_1:t_y_l_2+1, t_x_l_1:t_x_l_2+1] = seg_id*roi_base_data_new[roi_top_y:roi_bottom_y+1, roi_left_x:roi_right_x+1]
                 else:
-                    tile_data[t_x_l_1:t_x_l_2+1, t_y_l_1:t_y_l_2+1] = seg_id*roi_base_data[roi_left_x:roi_right_x+1,roi_top_y:roi_bottom_y+1]
+                    tile_data[t_y_l_1:t_y_l_2+1, t_x_l_1:t_x_l_2+1 ] = seg_id*roi_base_data[roi_top_y:roi_bottom_y+1,roi_left_x:roi_right_x+1]
 
         return tile_data
 
@@ -151,8 +151,8 @@ class DatasetGenerator:
         image_width = n_rois_x*self._roi_base_data.shape[1]
         image_height = n_rois_y*self._roi_base_data.shape[0]
         # roi dims
-        roi_width = self._roi_base_data.shape[0]
-        roi_height = self._roi_base_data.shape[1]
+        roi_width = self._roi_base_data.shape[1]
+        roi_height = self._roi_base_data.shape[0]
         
         tile_x_size = 1024
         tile_y_size = 1024
