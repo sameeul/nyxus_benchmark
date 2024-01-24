@@ -1,14 +1,14 @@
 from benchmark import Benchmark
 from datageneration import DatasetGenerator
 
-int_image_dir = "/home/samee/axle/dev/nyxus_paper/nyxus_benchmark/int"
-seg_image_dir = "/home/samee/axle/dev/nyxus_paper/nyxus_benchmark/seg"
+int_image_dir = "int"
+seg_image_dir = "seg"
 work_dir = "/home/samee/axle/dev/nyxus_paper/nyxus_work_dir"
 nyxus_executable = "/home/samee/axle/dev/nyxus_paper/nyxus/build_man/nyxus"
 feature_list = "*ALL*"
 generate_missing_image = False
-base_mask_image_path = "/home/samee/axle/dev/nyxus_paper/nyxus_benchmark/arnoldcat_pure_cat.jpg"
-base_intensity_image_path = "/home/samee/axle/dev/nyxus_paper/nyxus_benchmark/Siemens_star.tif"
+base_mask_image_path = "arnoldcat_pure_cat.jpg"
+base_intensity_image_path = "siemens_star.tif"
 
 
 if __name__ == '__main__':
@@ -28,14 +28,14 @@ if __name__ == '__main__':
             dataset_generator.generate_image_pair(n_roi ,roi_size, padding, percent_oversized_roi)
 
 
-    benchmark = Benchmark(  int_image_dir,
-                            seg_image_dir,
-                            work_dir, 
-                            nyxus_executable, 
-                            feature_list, 
-                            generate_missing_image
-                        )
+    # benchmark = Benchmark(  int_image_dir,
+    #                         seg_image_dir,
+    #                         work_dir, 
+    #                         nyxus_executable, 
+    #                         feature_list, 
+    #                         generate_missing_image
+    #                     )
 
 
-    benchmark.run_benchmark_suit()
-    benchmark.create_benchmark_plot("Total", "All", "All")
+    # benchmark.run_benchmark_suit()
+    # benchmark.create_benchmark_plot("Total", "All", "All")

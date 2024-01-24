@@ -112,7 +112,7 @@ class DatasetGenerator:
         cat_img = Image.open(self._base_mask_image_path)
         #crop image
         tmp = np.asarray(cat_img)
-        image_data = tmp[:,:,0]
+        image_data = tmp[:]
         ret, im = cv2.threshold(image_data, 100, 255, cv2.THRESH_BINARY_INV)
         contours, hierarchy  = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         x,y,w,h = cv2.boundingRect(contours[0])
@@ -127,10 +127,10 @@ class DatasetGenerator:
         #pad image
         w_r_n = w_r + 2*padding
         h_r_n = h_r + 2*padding
-        resized_image_w_padding = Image.new(resized_image.mode, (w_r_n, h_r_n), (255,255,255))
+        resized_image_w_padding = Image.new(resized_image.mode, (w_r_n, h_r_n), 255)
         resized_image_w_padding.paste(resized_image,(padding,padding))
         final_image_data = np.asarray(resized_image_w_padding)
-        ret, roi_base_data_orig = cv2.threshold(final_image_data[:,:,0], 100,1, cv2.THRESH_BINARY_INV)
+        ret, roi_base_data_orig = cv2.threshold(final_image_data[:], 100,1, cv2.THRESH_BINARY_INV)
         self._roi_base_data = roi_base_data_orig.astype(np.uint32)
 
 
@@ -156,7 +156,7 @@ class DatasetGenerator:
         
         tile_x_size = 1024
         tile_y_size = 1024
-        seg_file_name = PurePath(self._image_seg_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.tif")) 
+        seg_file_name = PurePath(self._image_seg_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif")) 
         with BioWriter(seg_file_name, max_workers=4, backend='python', X=image_width, Y=image_height, Z=1, C=1, T=1, dtype=np.uint32) as bw:
             tile_y_ind = 0
             for y in range(0,image_height, tile_y_size):
@@ -183,7 +183,7 @@ class DatasetGenerator:
 
         cropped_image_orig = int_data[x_offset:x_offset+sq_side,y_offset:y_offset+sq_side]
         cropped_image = cropped_image_orig.astype(np.uint32)
-        int_file_name = PurePath(self._image_int_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.tif"))
+        int_file_name = PurePath(self._image_int_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif"))
         with BioWriter(int_file_name, max_workers=4, backend='python', X=image_width, Y=image_height, Z=1, C=1, T=1, dtype=np.uint32) as bw:
             tile_y_ind = 0
             for y in range(0,image_height, tile_y_size):
