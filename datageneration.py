@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from math import ceil, sqrt, floor
 from bfio import BioWriter
-from pathlib import Path, PurePath
+from pathlib import Path
 
 class DatasetGenerator:
     def __init__(self,  
@@ -156,7 +156,7 @@ class DatasetGenerator:
         
         tile_x_size = 1024
         tile_y_size = 1024
-        seg_file_name = PurePath(self._image_seg_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif")) 
+        seg_file_name = Path(self._image_seg_dir)/f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif" 
         with BioWriter(seg_file_name, max_workers=4, backend='python', X=image_width, Y=image_height, Z=1, C=1, T=1, dtype=np.uint32) as bw:
             tile_y_ind = 0
             for y in range(0,image_height, tile_y_size):
@@ -183,7 +183,7 @@ class DatasetGenerator:
 
         cropped_image_orig = int_data[x_offset:x_offset+sq_side,y_offset:y_offset+sq_side]
         cropped_image = cropped_image_orig.astype(np.uint32)
-        int_file_name = PurePath(self._image_int_dir, Path(f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif"))
+        int_file_name = Path(self._image_int_dir)/f"synthetic_nrois={n_rois}_roiarea={roi_size}.ome.tif"
         with BioWriter(int_file_name, max_workers=4, backend='python', X=image_width, Y=image_height, Z=1, C=1, T=1, dtype=np.uint32) as bw:
             tile_y_ind = 0
             for y in range(0,image_height, tile_y_size):
