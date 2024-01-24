@@ -112,7 +112,6 @@ class DatasetGenerator:
         cat_img = Image.open(self._base_mask_image_path)
         #crop image
         tmp = np.asarray(cat_img)
-        print(tmp.shape)
         image_data = tmp[:]
         ret, im = cv2.threshold(image_data, 100, 255, cv2.THRESH_BINARY_INV)
         contours, hierarchy  = cv2.findContours(im, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
